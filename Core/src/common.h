@@ -89,10 +89,11 @@ void spring_damper_bad(
 
 float fast_atan(float x)
 {
+    
     float z = fabs(x);
     float w = z > 1.0f ? 1.0f / z : z;
-    float y = (M_PI / 4.0f)*w - w*(w - 1)*(0.2447f + 0.0663f*w);
-    return copysign(z > 1.0f ? M_PI / 2.0 - y : y, x);
+    float y = (PI / 4.0f)*w - w*(w - 1)*(0.2447f + 0.0663f*w);
+    return copysign(z > 1.0f ? PI / 2.0 - y : y, x);
 }
 
 float squaref(float x)
@@ -199,12 +200,12 @@ float damping_to_halflife(float damping, float eps = 1e-5f)
 
 float frequency_to_stiffness(float frequency)
 {
-   return squaref(2.0f * M_PI * frequency);
+   return squaref(2.0f * PI * frequency);
 }
 
 float stiffness_to_frequency(float stiffness)
 {
-    return sqrtf(stiffness) / (2.0f * M_PI);
+    return sqrtf(stiffness) / (2.0f * PI);
 }
 
 float critical_halflife(float frequency)
