@@ -28,5 +28,7 @@ workspace "SpringItOn"
 		include "vendor/raylib"
 	group ""
 	
-	include "Inertialization"
 	include "Damper"
+	include "SpringDamper"
+	include "Inertialization"
+	

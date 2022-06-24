@@ -218,6 +218,34 @@ float critical_frequency(float halflife)
     return stiffness_to_frequency(squaref(halflife_to_damping(halflife)) / 4.0f);
 }
 
+void spring_damper_implicit0(
+	float& x,
+	float& v,
+	float x_goal,
+	float v_goal,
+	float stiffness,
+	float damping,
+	float dt,
+	float eps = 1e-5f)
+{
+	float g = x_goal;
+	float q = v_goal;
+	float s = stiffness;
+	float d = damping;
+	float c = g + (d * q) / (s + eps);
+	float y = d / 2.0f;
+	float w = s - (d * d) / 4.0f < 0 ? 0 : sqrtf(s - (d * d) / 4.0f);  // guarantee not to sqrt negative
+	float j = sqrtf(squaref(v + y * (x - c)) / (w * w + eps) + squaref(x - c));
+	float p = fast_atan((v + (x - c) * y) / (-(x - c) * w + eps));
+
+	j = (x - c) > 0.0f ? j : -j;
+
+	float eydt = fast_negexp(y * dt);
+
+	x = j * eydt * cosf(w * dt + p) + c;
+	v = -y * j * eydt * cosf(w * dt + p) - w * j * eydt * sinf(w * dt + p);
+}
+
 void spring_damper_implicit(
     float& x, 
     float& v, 
