@@ -147,6 +147,7 @@ int main(void)
 			if (func_toggle) inertialize_sin_func_low_freq(dst_x, dst_v, data.cur().t);
 			else inertialize_sin_func_high_freq(dst_x, dst_v, data.cur().t);
 
+			// now 1 means current, before dst
 			float src_x = data(1).g;
 			float src_v = (data(1).g - data(2).g) / (data(1).t - data(2).t);
 

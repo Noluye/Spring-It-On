@@ -29,3 +29,4 @@ workspace "SpringItOn"
 	group ""
 	
 	include "Inertialization"
+	include "Damper"
