@@ -31,4 +31,4 @@ workspace "SpringItOn"
 	include "Damper"
 	include "SpringDamper"
 	include "Inertialization"
-	
+	include "Smoothing"
