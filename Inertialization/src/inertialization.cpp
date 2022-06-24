@@ -51,66 +51,54 @@ enum
 struct DummyData
 {
 	float x;  // value
-	float t;  // for draw and calculate vel
+	float v;  // velocity
+	float t;  // for draw and calculate velocity
 	float g;  // goal
 };
 
 class DataWrapper
 {
 public:
-	DataWrapper(float x, float t, float g)
+	DataWrapper() = default;
+	DataWrapper(float x, float v, float t, float g)
 	{
-		for (int i = 0; i < HISTORY_MAX; i++)
-		{
-			dummy[i] = DummyData{ x, t, g };
-		}
+		for (int i = 0; i < HISTORY_MAX; i++) data[i] = DummyData{ x, v, t, g };
 	}
-
-	void shift_history()
+	void ShiftHistory()
 	{
-		for (int i = HISTORY_MAX - 1; i > 0; i--)
-		{
-			dummy[i] = dummy[i - 1];
-		}
+		for (int i = HISTORY_MAX - 1; i > 0; i--) data[i] = data[i - 1];
 	}
-
-	inline DummyData& operator()(int i) {
-		return dummy[i];
+	DummyData& operator[](int i) {
+		return data[i];
 	}
-
-	inline DummyData& cur() { return dummy[0]; }
-
 	inline Vector2 produce_point(float x, float y)
 	{
-		return { x_offset - (cur().t - x) * timescale, y };
+		return { x_offset - (data[0].t - x) * timescale, y };
 	}
-
-	void draw()
+	void Draw()
 	{
-		DrawCircleV(Vector2{ x_offset, cur().g }, 5, MAROON);
-		DrawCircleV(Vector2{ x_offset, cur().x }, 5, DARKBLUE);
-
-		float t = cur().t;
+		DrawCircleV(Vector2{ x_offset, data[0].g}, 5, MAROON);
+		DrawCircleV(Vector2{ x_offset, data[0].x }, 5, DARKBLUE);
 
 		for (int i = 0; i < HISTORY_MAX - 1; i++)
 		{
-			Vector2 g_start = produce_point(dummy[i].t, dummy[i].g);
-			Vector2 g_stop = produce_point(dummy[i+1].t, dummy[i+1].g);
+			Vector2 g_start = produce_point(data[i].t, data[i].g);
+			Vector2 g_stop = produce_point(data[i+1].t, data[i+1].g);
 			
 			DrawLineV(g_start, g_stop, MAROON);
 			DrawCircleV(g_start, 2, MAROON);
 
-			Vector2 x_start = produce_point(dummy[i].t, dummy[i].x);
-			Vector2 x_stop = produce_point(dummy[i + 1].t, dummy[i + 1].x);
+			Vector2 x_start = produce_point(data[i].t, data[i].x);
+			Vector2 x_stop = produce_point(data[i + 1].t, data[i + 1].x);
 
 			DrawLineV(x_start, x_stop, BLUE);
 			DrawCircleV(x_start, 2, BLUE);
 		}
 	}
 private:
-	DummyData dummy[HISTORY_MAX];
-	float timescale = 240.0f;
-	float x_offset = 600.0f;
+	DummyData data[HISTORY_MAX];
+	const float timescale = 240.0f;
+	const float x_offset = 600.0f;
 };
 
 
@@ -119,24 +107,24 @@ int main(void)
 	// Init Window
 	const int screenWidth = 640;
 	const int screenHeight = 360;
-
 	InitWindow(screenWidth, screenHeight, "raylib [springs] example - inertialization");
 	// -----------------------------------------------------
 	// Init Variables
+	float x = screenHeight / 2.0f;
+	float v = 0.0;
+	float t = 0.0;
+	float g = screenHeight / 2.0f;
 	float halflife = 0.1f;
 	float dt = 1.0 / 60.0f;
-	
-	
 	float off_x = 0.0;
 	float off_v = 0.0;
 	bool func_toggle = false;
-
-	DataWrapper data = { screenHeight / 2.0f, 0.0, screenHeight / 2.0f };
+	DataWrapper dummy(x, v, t, g);
 	// -----------------------------------------------------
 	SetTargetFPS(1.0f / dt);
 	while (!WindowShouldClose())
 	{
-		data.shift_history();
+		dummy.ShiftHistory();
 
 		if (GuiButton(Rectangle{ 100, 75, 120, 20 }, "Transition"))
 		{
@@ -144,12 +132,12 @@ int main(void)
 
 			float dst_x, dst_v;
 			// given time, get dst_x and dst_v
-			if (func_toggle) inertialize_sin_func_low_freq(dst_x, dst_v, data.cur().t);
-			else inertialize_sin_func_high_freq(dst_x, dst_v, data.cur().t);
+			if (func_toggle) inertialize_sin_func_low_freq(dst_x, dst_v, t);
+			else inertialize_sin_func_high_freq(dst_x, dst_v, t);
 
 			// now 1 means current, before dst
-			float src_x = data(1).g;
-			float src_v = (data(1).g - data(2).g) / (data(1).t - data(2).t);
+			float src_x = dummy[1].g;
+			float src_v = (dummy[1].g - dummy[2].g) / (dummy[1].t - dummy[2].t);
 
 			inertialize_transition(
 				off_x, off_v,
@@ -159,24 +147,20 @@ int main(void)
 
 		halflife = GuiSliderBar(Rectangle{ 100, 20, 120, 20 }, "halflife", TextFormat("%5.3f", halflife), halflife, 0.0f, 1.0f);
 		dt = GuiSliderBar(Rectangle{ 100, 45, 120, 20 }, "dt", TextFormat("%5.3f", dt), dt, 1.0 / 60.0f, 0.1f);
-
-		// Update Spring
+		t += dt;
 		SetTargetFPS(1.0f / dt);
-		data(0).t += dt;
-
+		
 		float cur_gv;
-		if (func_toggle) inertialize_sin_func_low_freq(data.cur().g, cur_gv, data.cur().t);
-		else inertialize_sin_func_high_freq(data.cur().g, cur_gv, data.cur().t);
-
-		float cur_v;  // no use
-		inertialize_update(data.cur().x, cur_v, off_x, off_v, data.cur().g, cur_gv, halflife, dt);
+		if (func_toggle) inertialize_sin_func_low_freq(g, cur_gv, t);
+		else inertialize_sin_func_high_freq(g, cur_gv, t);
+		// Update Spring
+		inertialize_update(x, v, off_x, off_v, g, cur_gv, halflife, dt);
 		
+		dummy[0] = { x, v, t, g };
+
 		BeginDrawing();
-
 		ClearBackground(RAYWHITE);
-		
-		data.draw();
-
+		dummy.Draw();
 		EndDrawing();
 
 	}
